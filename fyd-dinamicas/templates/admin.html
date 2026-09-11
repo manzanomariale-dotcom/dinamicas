@@ -63,6 +63,10 @@
       input[type="text"], input[type="password"], input[type="number"], input[type="datetime-local"] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(15, 8, 29, 0.8); color: white; box-sizing: border-box; }
       .btn-submit { width: 100%; background: linear-gradient(90deg, #7c3aed, #c084fc); color: white; border: none; padding: 12px 20px; font-weight: 700; border-radius: 10px; cursor: pointer; }
 
+      /* TIMER ADMIN */
+      .admin-timer-box { background: rgba(15, 8, 29, 0.8); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin: 15px auto; max-width: 300px; text-align: center; }
+      .admin-timer-val { font-size: 1.3rem; font-weight: 800; color: #c084fc; }
+
       .places-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 20px; }
       .place-card { background: rgba(15, 8, 29, 0.8); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; text-align: center; }
       .place-card h3 { color: var(--yellow); margin-top: 0; }
@@ -148,6 +152,11 @@
                 <h2>SORTEO DE LOS 3 PREMIOS EN VIVO</h2>
                 <p style="color: var(--text-muted);">Participantes APROBADOS: <strong>{{ approved_tickets|length }}</strong></p>
 
+                <div class="admin-timer-box">
+                    <div style="font-size:0.75rem; color:var(--text-muted);">TIEMPO RESTANTE</div>
+                    <div class="admin-timer-val" id="admin-countdown">Cargando...</div>
+                </div>
+
                 <div class="places-grid">
                     <!-- 3ER LUGAR -->
                     <div class="place-card">
@@ -193,7 +202,7 @@
                         <input type="number" step="0.01" name="min_amount" value="{{ config.min_amount }}" required>
                     </div>
                     <div class="form-group">
-                        <label>Fecha del Sorteo</label>
+                        <label>Fecha y Hora del Sorteo</label>
                         <input type="datetime-local" name="target_draw_time" value="{{ config.target_draw_time }}" required>
                     </div>
                     <hr style="border-color: var(--border-color); margin: 20px 0;">
@@ -215,6 +224,30 @@
         </div>
 
         <script>
+            // RELOJ REGRESIVO ADMIN
+            const targetDate = new Date("{{ config.target_draw_time }}").getTime();
+            const countdownEl = document.getElementById("admin-countdown");
+
+            function updateCountdown() {
+                const now = new Date().getTime();
+                const distance = targetDate - now;
+
+                if (distance < 0) {
+                    countdownEl.innerText = "¡Sorteo en Proceso!";
+                    return;
+                }
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                countdownEl.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }
+            setInterval(updateCountdown, 1000);
+            updateCountdown();
+
+            // SOCKETS RULETA
             const socket = io();
             const approvedTickets = {{ approved_tickets|tojson }};
             let winnersHistory = [];
@@ -227,7 +260,6 @@
             }
 
             function spinPlace(placeNum) {
-                // Filtrar para no repetir ganadores
                 const availableTickets = approvedTickets.filter(t => !winnersHistory.includes(t.participation_number));
 
                 if (availableTickets.length === 0) {
