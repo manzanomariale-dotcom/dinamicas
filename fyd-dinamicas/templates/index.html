@@ -46,6 +46,17 @@
 
       .live-badge { display: inline-block; background: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; }
 
+      /* TIMER */
+      .timer-box {
+        background: rgba(15, 8, 29, 0.9);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 10px;
+        margin: 12px 0;
+        text-align: center;
+      }
+      .timer-display { font-size: 1.4rem; font-weight: 800; color: var(--purple-accent); letter-spacing: 1px; }
+
       .prizes-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
       .prize-card { background: rgba(15, 8, 29, 0.8); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 6px; text-align: center; }
       .prize-card h4 { margin: 0 0 5px 0; font-size: 0.85rem; color: var(--gold); }
@@ -91,6 +102,12 @@
     <div class="card text-center">
         <span class="live-badge">🔴 SORTEO EN VIVO</span>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin: 8px 0 0 0;">Monto Mínimo: Bs. {{ config.min_amount }}</p>
+
+        <!-- CONTADOR REGRESIVO -->
+        <div class="timer-box">
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Tiempo Restante</div>
+            <div class="timer-display" id="client-countdown">Cargando...</div>
+        </div>
 
         <div class="prizes-container">
             <!-- 3ER LUGAR -->
@@ -167,6 +184,30 @@
 </div>
 
 <script>
+    // RELOJ REGRESIVO
+    const targetDate = new Date("{{ target_draw_time }}").getTime();
+    const countdownEl = document.getElementById("client-countdown");
+
+    function updateCountdown() {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+
+        if (distance < 0) {
+            countdownEl.innerText = "¡Sorteo en Proceso!";
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        countdownEl.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    // SOCKETS RULETA
     const socket = io();
     let intervals = {};
 
