@@ -6,10 +6,8 @@ from flask_socketio import SocketIO, emit
 app = Flask(__name__)
 app.secret_key = 'agencia_fyd_secret_key'
 
-# Contraseña para acceder al panel de administración
-ADMIN_PASSWORD = 'fredmary.14'
+ADMIN_PASSWORD = '1234'
 
-# Inicializar WebSockets
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 DYNAMIC_CONFIG = {
@@ -18,7 +16,9 @@ DYNAMIC_CONFIG = {
     'target_draw_time': (datetime.now() + timedelta(days=2)).strftime(
         '%Y-%m-%dT20:00'
     ),
-    'prize_description': 'Premio Especial Agencia FyD',
+    'prize_1': '1er Lugar - Premio Mayor',
+    'prize_2': '2do Lugar - Segundo Premio',
+    'prize_3': '3er Lugar - Tercer Premio',
 }
 
 REGISTERED_TICKETS = [
@@ -161,9 +161,6 @@ def upload_ticket():
   return redirect(url_for('index', search_name=client_name))
 
 
-# --- RUTAS DE ADMINISTRACIÓN CON CLAVE ---
-
-
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
   if request.method == 'POST':
@@ -212,8 +209,14 @@ def update_config():
   DYNAMIC_CONFIG['target_draw_time'] = request.form.get(
       'target_draw_time', DYNAMIC_CONFIG['target_draw_time']
   )
-  DYNAMIC_CONFIG['prize_description'] = request.form.get(
-      'prize_description', DYNAMIC_CONFIG['prize_description']
+  DYNAMIC_CONFIG['prize_1'] = request.form.get(
+      'prize_1', DYNAMIC_CONFIG['prize_1']
+  ).strip()
+  DYNAMIC_CONFIG['prize_2'] = request.form.get(
+      'prize_2', DYNAMIC_CONFIG['prize_2']
+  ).strip()
+  DYNAMIC_CONFIG['prize_3'] = request.form.get(
+      'prize_3', DYNAMIC_CONFIG['prize_3']
   ).strip()
 
   flash('Configuración de la dinámica actualizada con éxito.', 'admin_success')
@@ -242,17 +245,17 @@ def delete_ticket(ticket_id):
   return redirect(url_for('admin_panel'))
 
 
-# --- EVENTOS WEBSOCKET EN TIEMPO REAL ---
+# --- WEBSOCKETS ---
 
 
-@socketio.on('spin_roulette')
+@socketio.on('spin_place')
 def handle_spin(data):
-  emit('start_spinning', broadcast=True)
+  emit('start_spinning_place', data, broadcast=True)
 
 
-@socketio.on('winner_selected')
-def handle_winner(data):
-  emit('show_winner', data, broadcast=True)
+@socketio.on('winner_place_selected')
+def handle_winner_place(data):
+  emit('show_place_winner', data, broadcast=True)
 
 
 if __name__ == '__main__':
