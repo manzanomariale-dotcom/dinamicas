@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
 import re
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 app.secret_key = 'agencia_fyd_secret_key'
 
-# Inicializar WebSockets para sincronización en tiempo real
+# Contraseña para acceder al panel de administración
+ADMIN_PASSWORD = 'fredmary.14'
+
+# Inicializar WebSockets
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 DYNAMIC_CONFIG = {
@@ -33,7 +36,6 @@ REGISTERED_TICKETS = [
 
 
 def extract_ticket_data(text):
-  """Extrae el Serial y Monto Total de tickets digitales o impresos."""
   amount = 0.0
   total_match = re.search(
       r'TOTAL\s*(?:TICKET)?\s*(?:\(BS\)|VES)?:?\s*([\d\.,]+)',
@@ -159,21 +161,48 @@ def upload_ticket():
   return redirect(url_for('index', search_name=client_name))
 
 
-@app.route('/admin')
+# --- RUTAS DE ADMINISTRACIÓN CON CLAVE ---
+
+
+@app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
+  if request.method == 'POST':
+    password_input = request.form.get('password', '')
+    if password_input == ADMIN_PASSWORD:
+      session['admin_logged'] = True
+      flash('Sesión iniciada correctamente.', 'admin_success')
+    else:
+      flash('Contraseña incorrecta.', 'admin_error')
+      return render_template('admin.html', logged_in=False)
+
+  is_logged = session.get('admin_logged', False)
+  if not is_logged:
+    return render_template('admin.html', logged_in=False)
+
   approved_tickets = [
       t for t in REGISTERED_TICKETS if t['status'] == 'APROBADO'
   ]
   return render_template(
       'admin.html',
+      logged_in=True,
       tickets=REGISTERED_TICKETS,
       approved_tickets=approved_tickets,
       config=DYNAMIC_CONFIG,
   )
 
 
+@app.route('/admin/logout')
+def admin_logout():
+  session.pop('admin_logged', None)
+  flash('Has cerrado sesión.', 'admin_success')
+  return redirect(url_for('admin_panel'))
+
+
 @app.route('/admin/update-config', methods=['POST'])
 def update_config():
+  if not session.get('admin_logged'):
+    return redirect(url_for('admin_panel'))
+
   DYNAMIC_CONFIG['title'] = request.form.get(
       'title', DYNAMIC_CONFIG['title']
   ).strip()
@@ -193,6 +222,9 @@ def update_config():
 
 @app.route('/admin/update-status/<int:ticket_id>/<string:new_status>')
 def update_status(ticket_id, new_status):
+  if not session.get('admin_logged'):
+    return redirect(url_for('admin_panel'))
+
   for ticket in REGISTERED_TICKETS:
     if ticket['id'] == ticket_id:
       ticket['status'] = new_status
@@ -202,6 +234,9 @@ def update_status(ticket_id, new_status):
 
 @app.route('/admin/delete/<int:ticket_id>')
 def delete_ticket(ticket_id):
+  if not session.get('admin_logged'):
+    return redirect(url_for('admin_panel'))
+
   global REGISTERED_TICKETS
   REGISTERED_TICKETS = [t for t in REGISTERED_TICKETS if t['id'] != ticket_id]
   return redirect(url_for('admin_panel'))

@@ -57,10 +57,11 @@
       .btn-delete { background: var(--red); }
 
       .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 25px; }
-      .form-group { margin-bottom: 15px; }
+      .login-box { max-width: 380px; margin: 60px auto; text-align: center; }
+      .form-group { margin-bottom: 15px; text-align: left; }
       label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
-      input[type="text"], input[type="number"], input[type="datetime-local"] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(15, 8, 29, 0.8); color: white; box-sizing: border-box; }
-      .btn-submit { background: linear-gradient(90deg, #7c3aed, #c084fc); color: white; border: none; padding: 12px 20px; font-weight: 700; border-radius: 10px; cursor: pointer; }
+      input[type="text"], input[type="password"], input[type="number"], input[type="datetime-local"] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(15, 8, 29, 0.8); color: white; box-sizing: border-box; }
+      .btn-submit { width: 100%; background: linear-gradient(90deg, #7c3aed, #c084fc); color: white; border: none; padding: 12px 20px; font-weight: 700; border-radius: 10px; cursor: pointer; }
 
       .roulette-container { text-align: center; padding: 20px; }
       .roulette-box { width: 220px; height: 220px; border-radius: 50%; border: 6px solid #c084fc; margin: 20px auto; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; color: #f59e0b; background: radial-gradient(circle, #2e1065, #0b061a); box-shadow: 0 0 30px rgba(192, 132, 252, 0.4); }
@@ -70,159 +71,191 @@
 <body>
 
 <div class="container">
-    <header>
-        <div>
-            <h1>AGENCIA FyD - Panel Admin</h1>
-            <small style="color: var(--text-muted);">Administración y Sorteos en Vivo</small>
-        </div>
-        <a href="/" class="btn-client">← Ir a Vista del Cliente</a>
-    </header>
+    {% if not logged_in %}
+        <!-- FORMULARIO DE ACCESO CON CLAVE -->
+        <div class="card login-box">
+            <h2 style="color: #c084fc; margin-top:0;">🔒 Acceso Administrador</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Ingresa la contraseña para gestionar el sistema</p>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem;">
+                      {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; padding: 12px; border-radius: 10px; margin-bottom: 20px;">
-              {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('tickets')">📋 Boletos Registrados</button>
-        <button class="tab-btn" onclick="showTab('sorteo')">🎡 Realizar Sorteo</button>
-        <button class="tab-btn" onclick="showTab('config')">⚙️ Configurar Dinámica</button>
-    </div>
-
-    <!-- PESTAÑA 1: TICKETS -->
-    <div id="tab-tickets" class="tab-content active">
-        <div class="table-card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Boleto</th>
-                        <th>Cliente</th>
-                        <th>Teléfono</th>
-                        <th>Serial</th>
-                        <th>Monto</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in tickets %}
-                    <tr>
-                        <td><strong style="color: #c084fc;">{{ t.participation_number }}</strong></td>
-                        <td>{{ t.client_name }}</td>
-                        <td>{{ t.client_phone }}</td>
-                        <td><code>{{ t.extracted_serial }}</code></td>
-                        <td>Bs. {{ t.extracted_amount }}</td>
-                        <td><span class="status-badge status-{{ t.status }}">{{ t.status }}</span></td>
-                        <td class="actions">
-                            <a href="/admin/update-status/{{ t.id }}/APROBADO" class="btn-approve">Aprobar</a>
-                            <a href="/admin/update-status/{{ t.id }}/RECHAZADO" class="btn-reject">Rechazar</a>
-                            <a href="/admin/delete/{{ t.id }}" class="btn-delete" onclick="return confirm('¿Seguro de eliminar?')">X</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="7" style="text-align: center;">No hay tickets registrados.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- PESTAÑA 2: SORTEO -->
-    <div id="tab-sorteo" class="tab-content">
-        <div class="card roulette-container">
-            <h2>SORTEO EN VIVO</h2>
-            <p style="color: var(--text-muted);">Participantes APROBADOS: <strong>{{ approved_tickets|length }}</strong></p>
-
-            <div class="roulette-box" id="display-number">#000000</div>
-
-            <button class="btn-submit" style="font-size: 1.1rem; padding: 15px 30px;" onclick="spinRoulette()">¡GIRAR RULETA!</button>
-
-            <div id="winner-info" class="winner-box"></div>
-        </div>
-    </div>
-
-    <!-- PESTAÑA 3: CONFIGURACIÓN -->
-    <div id="tab-config" class="tab-content">
-        <div class="card">
-            <h2>Configuración General de la Dinámica</h2>
-            <form action="/admin/update-config" method="POST">
+            <form action="/admin" method="POST">
                 <div class="form-group">
-                    <label>Título de la Dinámica</label>
-                    <input type="text" name="title" value="{{ config.title }}" required>
+                    <label>Contraseña</label>
+                    <input type="password" name="password" required placeholder="••••••••">
                 </div>
-
-                <div class="form-group">
-                    <label>Monto Mínimo (Bs.)</label>
-                    <input type="number" step="0.01" name="min_amount" value="{{ config.min_amount }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Fecha y Hora del Sorteo</label>
-                    <input type="datetime-local" name="target_draw_time" value="{{ config.target_draw_time }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Descripción del Premio</label>
-                    <input type="text" name="prize_description" value="{{ config.prize_description }}" required>
-                </div>
-
-                <button type="submit" class="btn-submit">Guardar Cambios</button>
+                <button type="submit" class="btn-submit">Ingresar</button>
             </form>
+            <br>
+            <a href="/" class="btn-client">← Volver a la Vista Pública</a>
         </div>
-    </div>
-</div>
+    {% else %}
+        <!-- PANEL COMPLETO SI ESTÁ AUTENTICADO -->
+        <header>
+            <div>
+                <h1>AGENCIA FyD - Panel Admin</h1>
+                <small style="color: var(--text-muted);">Administración y Sorteos en Vivo</small>
+            </div>
+            <div>
+                <a href="/admin/logout" class="btn-client" style="color: var(--red); border-color: var(--red);">Cerrar Sesión</a>
+                <a href="/" class="btn-client">← Vista Cliente</a>
+            </div>
+        </header>
 
-<script>
-    const socket = io();
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; padding: 12px; border-radius: 10px; margin-bottom: 20px;">
+                  {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
-    function showTab(tabName) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('tickets')">📋 Boletos Registrados</button>
+            <button class="tab-btn" onclick="showTab('sorteo')">🎡 Realizar Sorteo</button>
+            <button class="tab-btn" onclick="showTab('config')">⚙️ Configurar Dinámica</button>
+        </div>
 
-        document.getElementById('tab-' + tabName).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
+        <!-- PESTAÑA 1: TICKETS -->
+        <div id="tab-tickets" class="tab-content active">
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Boleto</th>
+                            <th>Cliente</th>
+                            <th>Teléfono</th>
+                            <th>Serial</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tickets %}
+                        <tr>
+                            <td><strong style="color: #c084fc;">{{ t.participation_number }}</strong></td>
+                            <td>{{ t.client_name }}</td>
+                            <td>{{ t.client_phone }}</td>
+                            <td><code>{{ t.extracted_serial }}</code></td>
+                            <td>Bs. {{ t.extracted_amount }}</td>
+                            <td><span class="status-badge status-{{ t.status }}">{{ t.status }}</span></td>
+                            <td class="actions">
+                                <a href="/admin/update-status/{{ t.id }}/APROBADO" class="btn-approve">Aprobar</a>
+                                <a href="/admin/update-status/{{ t.id }}/RECHAZADO" class="btn-reject">Rechazar</a>
+                                <a href="/admin/delete/{{ t.id }}" class="btn-delete" onclick="return confirm('¿Seguro de eliminar?')">X</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" style="text-align: center;">No hay tickets registrados.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    const approvedTickets = {{ approved_tickets|tojson }};
+        <!-- PESTAÑA 2: SORTEO -->
+        <div id="tab-sorteo" class="tab-content">
+            <div class="card roulette-container">
+                <h2>SORTEO EN VIVO</h2>
+                <p style="color: var(--text-muted);">Participantes APROBADOS: <strong>{{ approved_tickets|length }}</strong></p>
 
-    function spinRoulette() {
-        if (approvedTickets.length === 0) {
-            alert("No hay tickets aprobados para realizar el sorteo.");
-            return;
-        }
+                <div class="roulette-box" id="display-number">#000000</div>
 
-        socket.emit('spin_roulette', {});
+                <button class="btn-submit" style="font-size: 1.1rem; padding: 15px 30px; width:auto;" onclick="spinRoulette()">¡GIRAR RULETA!</button>
 
-        const display = document.getElementById("display-number");
-        const winnerInfo = document.getElementById("winner-info");
-        winnerInfo.innerText = "";
+                <div id="winner-info" class="winner-box"></div>
+            </div>
+        </div>
 
-        let counter = 0;
-        const totalSpins = 40;
-        const interval = setInterval(() => {
-            const randomIndex = Math.floor(Math.random() * approvedTickets.length);
-            display.innerText = approvedTickets[randomIndex].participation_number;
-            counter++;
+        <!-- PESTAÑA 3: CONFIGURACIÓN -->
+        <div id="tab-config" class="tab-content">
+            <div class="card">
+                <h2>Configuración General de la Dinámica</h2>
+                <form action="/admin/update-config" method="POST">
+                    <div class="form-group">
+                        <label>Título de la Dinámica</label>
+                        <input type="text" name="title" value="{{ config.title }}" required>
+                    </div>
 
-            if (counter >= totalSpins) {
-                clearInterval(interval);
-                const winner = approvedTickets[Math.floor(Math.random() * approvedTickets.length)];
-                display.innerText = winner.participation_number;
-                winnerInfo.innerHTML = `🎉 ¡GANADOR/A!<br>${winner.client_name} (${winner.client_phone})`;
+                    <div class="form-group">
+                        <label>Monto Mínimo (Bs.)</label>
+                        <input type="number" step="0.01" name="min_amount" value="{{ config.min_amount }}" required>
+                    </div>
 
-                socket.emit('winner_selected', {
-                    number: winner.participation_number,
-                    name: winner.client_name
-                });
+                    <div class="form-group">
+                        <label>Fecha y Hora del Sorteo</label>
+                        <input type="datetime-local" name="target_draw_time" value="{{ config.target_draw_time }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descripción del Premio</label>
+                        <input type="text" name="prize_description" value="{{ config.prize_description }}" required>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Guardar Cambios</button>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            const socket = io();
+
+            function showTab(tabName) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+                document.getElementById('tab-' + tabName).classList.add('active');
+                event.currentTarget.classList.add('active');
             }
-        }, 80);
-    }
-</script>
+
+            const approvedTickets = {{ approved_tickets|tojson }};
+
+            function spinRoulette() {
+                if (approvedTickets.length === 0) {
+                    alert("No hay tickets aprobados para realizar el sorteo.");
+                    return;
+                }
+
+                socket.emit('spin_roulette', {});
+
+                const display = document.getElementById("display-number");
+                const winnerInfo = document.getElementById("winner-info");
+                winnerInfo.innerText = "";
+
+                let counter = 0;
+                const totalSpins = 40;
+                const interval = setInterval(() => {
+                    const randomIndex = Math.floor(Math.random() * approvedTickets.length);
+                    display.innerText = approvedTickets[randomIndex].participation_number;
+                    counter++;
+
+                    if (counter >= totalSpins) {
+                        clearInterval(interval);
+                        const winner = approvedTickets[Math.floor(Math.random() * approvedTickets.length)];
+                        display.innerText = winner.participation_number;
+                        winnerInfo.innerHTML = `🎉 ¡GANADOR/A!<br>${winner.client_name} (${winner.client_phone})`;
+
+                        socket.emit('winner_selected', {
+                            number: winner.participation_number,
+                            name: winner.client_name
+                        });
+                    }
+                }, 80);
+            }
+        </script>
+    {% endif %}
+</div>
 
 </body>
 </html>
