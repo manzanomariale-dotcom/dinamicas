@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="text-align:center; padding-top:40px;">
+    <div class="counter-card" style="background:var(--bg-card);">
+        <div style="font-size:4rem; margin-bottom:10px;">✅</div>
+        <h2 style="color:var(--purple-bright); margin-bottom:10px;">TICKET RECIBIDO</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:20px;">
+            Tu ticket fue registrado correctamente y queda <strong>PENDIENTE DE VALIDACIÓN</strong> por Agencia FyD.
+        </p>
+
+        <div style="background:#120924; border:2px dashed var(--purple-bright); padding:20px; border-radius:12px; margin-bottom:20px;">
+            <div style="font-size:0.9rem; color:var(--purple-light);">🎟️ TU PARTICIPACIÓN</div>
+            <div style="font-size:2.5rem; font-weight:800; color:white; letter-spacing:2px;">{{ participation_number }}</div>
+        </div>
+
+        <div class="detected-box" style="text-align:left;">
+            <div class="detected-item"><span class="detected-label">Cliente:</span><span class="detected-val">{{ name }}</span></div>
+            <div class="detected-item"><span class="detected-label">Agencia:</span><span class="detected-val">{{ agency }}</span></div>
+            <div class="detected-item"><span class="detected-label">Serial:</span><span class="detected-val">{{ serial }}</span></div>
+            <div class="detected-item"><span class="detected-label">Monto Detectado:</span><span class="detected-val">Bs. {{ amount }}</span></div>
+        </div>
+
+        <a href="{{ url_for('client.index') }}" class="btn-primary" style="display:inline-block; text-decoration:none; margin-top:15px;">VOLVER AL INICIO</a>
+    </div>
+</div>
+{% endblock %}

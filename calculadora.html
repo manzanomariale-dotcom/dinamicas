@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=305b75d9-1f4b-4a79-b60b-9b0b88f5a936
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=305b75d9-1f4b-4a79-b60b-9b0b88f5a936">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agencia F&D - Sistema Cashea</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8d4f3 0%, #d7b3ff 50%, #b38cff 100%);
+            color: #4b256b;
+            font-family: sans-serif;
+            min-height: 100vh;
+        }
+        .tab-content { display: none; }
+        .tab-active { display: block !important; }
+        .bg-luxury {
+            background: rgba(255, 255, 255, .35);
+            backdrop-filter: blur(10px);
+            border: 1px solid #d18cff;
+        }
+        .dash-card { background: rgba(255,255,255,.72); border:1px solid #e9b8ff; box-shadow:0 8px 25px rgba(102,45,145,.10); }
+        .quick-btn { transition: transform .15s, box-shadow .15s; }
+        .quick-btn:active { transform: scale(.97); }
+        .number-card { min-height: 92px; }
+    </style>
+</head>
+<body class="pb-24">
+
+<div class="max-w-md mx-auto p-4 space-y-6">
+    <div class="flex justify-between items-center border-b border-fuchsia-300 pb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-fuchsia-700">Agencia <span class="text-purple-950">F&D</span></h1>
+            <p class="text-xs text-purple-600">Sistema de cuentas Cashea</p>
+        </div>
+        <div class="text-right text-xs font-bold text-purple-700" id="fecha-inicio"></div>
+    </div>
+
+    <!-- PESTAÑA INICIO -->
+    <div id="tab-home" class="tab-content tab-active space-y-4">
+        <div class="bg-gradient-to-r from-purple-800 to-fuchsia-600 text-white p-5 rounded-2xl shadow-xl">
+            <p class="text-sm opacity-90">¡Bienvenida! 👋</p>
+            <h2 class="text-2xl font-black mt-1">Panel de control</h2>
+            <p class="text-xs mt-1 opacity-90">Todo lo importante de tus clientes, en un solo lugar.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <div class="dash-card number-card p-4 rounded-xl">
+                <p class="text-xs text-purple-600 font-bold">👥 CLIENTES</p>
+                <p id="home-clientes" class="text-3xl font-black text-purple-900 mt-2">0</p>
+            </div>
+            <div class="dash-card number-card p-4 rounded-xl">
+                <p class="text-xs text-purple-600 font-bold">💜 CASHEAS AGREGADOS</p>
+                <p id="home-cashea" class="text-2xl font-black text-fuchsia-700 mt-2">0.00</p>
+            </div>
+            <div class="dash-card number-card p-4 rounded-xl">
+                <p class="text-xs text-purple-600 font-bold">🏆 PREMIOS</p>
+                <p id="home-premios" class="text-2xl font-black text-emerald-700 mt-2">0.00</p>
+            </div>
+            <div class="dash-card number-card p-4 rounded-xl">
+                <p class="text-xs text-purple-600 font-bold">🎰 JUGADAS HOY</p>
+                <p id="home-jugadas" class="text-2xl font-black text-red-600 mt-2">0.00</p>
+            </div>
+        </div>
+
+        <div class="dash-card p-4 rounded-xl">
+            <h3 class="font-black text-purple-900 mb-3">⚡ ACCIONES RÁPIDAS</h3>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="nuevoCliente()" class="quick-btn bg-purple-700 text-white p-3 rounded-xl font-bold">👤 Nuevo cliente</button>
+                <button onclick="irACaja('cashea')" class="quick-btn bg-purple-600 text-white p-3 rounded-xl font-bold">💜 Acreditar Cashea</button>
+                <button onclick="irACaja('jugadas')" class="quick-btn bg-red-600 text-white p-3 rounded-xl font-bold">🎰 Registrar jugada</button>
+                <button onclick="irACaja('premios')" class="quick-btn bg-emerald-600 text-white p-3 rounded-xl font-bold">🏆 Agregar premio</button>
+            </div>
+        </div>
+
+        <div class="dash-card p-4 rounded-xl">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-black text-purple-900">🕐 ÚLTIMOS MOVIMIENTOS</h3>
+                <span class="text-xs text-purple-600">Hoy</span>
+            </div>
+            <div id="home-movimientos" class="space-y-2 text-sm"></div>
+        </div>
+
+        <div class="dash-card p-4 rounded-xl">
+            <h3 class="font-black text-purple-900 mb-3">📅 RESUMEN DE HOY</h3>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div class="bg-purple-50 p-3 rounded-lg"><b>💵 Pagos</b><br><span id="home-hoy-acreditado">0.00</span></div>
+                <div class="bg-red-50 p-3 rounded-lg"><b>🎰 Jugadas</b><br><span id="home-hoy-jugadas">0.00</span></div>
+                <div class="bg-emerald-50 p-3 rounded-lg"><b>🏆 Premios</b><br><span id="home-hoy-premios">0.00</span></div>
+                <div class="bg-amber-50 p-3 rounded-lg"><b>🏦 Transferencias</b><br><span id="home-hoy-retiros">0.00</span></div>
+            </div>
+        </div>
+
+        <div class="dash-card p-4 rounded-xl">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-black text-purple-900">📅 REPORTE DE HOY</h3>
+                <button onclick="renderReporteHoy()" class="text-xs bg-purple-700 text-white px-3 py-2 rounded-lg font-bold">🔄 Actualizar</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div class="bg-purple-50 p-3 rounded-lg"><b>💵 Pagos</b><br><span id="reporte-hoy-pagos">0.00</span></div>
+                <div class="bg-fuchsia-50 p-3 rounded-lg"><b>💜 Casheas</b><br><span id="reporte-hoy-casheas">0.00</span></div>
+                <div class="bg-red-50 p-3 rounded-lg"><b>🎰 Jugadas</b><br><span id="reporte-hoy-jugadas">0.00</span></div>
+                <div class="bg-emerald-50 p-3 rounded-lg"><b>🏆 Premios</b><br><span id="reporte-hoy-premios">0.00</span></div>
+                <div class="bg-blue-50 p-3 rounded-lg col-span-2"><b>🏦 Transferencias de premios</b><br><span id="reporte-hoy-transferencias">0.00</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA CAJA RÁPIDA -->
+    <div id="mensaje-operacion" class="hidden mb-4"></div>
+<div id="tab-caja" class="tab-content space-y-4"><div class="mx-4 mt-3 rounded-xl bg-purple-50 border border-purple-100 p-3 text-sm text-purple-800">🎯 <b>Regla:</b> las jugadas consumen primero el saldo positivo, luego los premios y solo después generan saldo pendiente. Los pagos y Cashea aumentan el saldo positivo. Los premios se manejan por separado y las transferencias solo descuentan de los premios.</div>
+        <h2 class="text-xl font-bold text-fuchsia-700">💰 Caja Rápida</h2>
+        <input type="text" id="inp-nombre" class="w-full p-3 bg-white/60 border border-fuchsia-400 rounded-lg text-purple-950 font-bold" placeholder="Nombre del Cliente">
+        
+        <div class="bg-luxury p-5 rounded-xl border border-fuchsia-300 space-y-4">
+            <div class="text-center p-3">
+                <p class="text-xs text-purple-700 uppercase">Saldo positivo disponible</p>
+                <div id="display-saldo" class="text-5xl font-bold text-fuchsia-600">0.00</div>
+                <div class="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <p class="text-xs text-emerald-700 uppercase font-bold">Premios ganados (acumulado)</p>
+                    <div id="display-premios" class="text-3xl font-black text-emerald-700">0.00</div>
+                </div>
+                <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-xs text-red-700 uppercase font-bold">Saldo pendiente</p>
+                    <div id="display-pendiente" class="text-3xl font-black text-red-700">0.00</div>
+                </div>
+                
+            </div>
+            <input type="number" id="inp-monto" class="w-full p-3 bg-white/60 border border-fuchsia-400 rounded-lg text-purple-950 text-center text-xl" placeholder="Monto">
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="operar('cashea')" class="bg-purple-700 p-3 rounded font-bold">💜 Acreditar Cashea</button>
+                <button onclick="operar('pago')" class="bg-fuchsia-600 p-3 rounded font-bold">💵 Pago</button>
+                <button onclick="operar('premios')" class="bg-emerald-600 p-3 rounded font-bold">🏆 Agregar Premio</button>
+                <button onclick="operar('jugadas')" class="bg-red-700 p-3 rounded font-bold">🎰 Jugada</button>
+                <button onclick="operar('transf')" class="bg-blue-700 p-3 rounded font-bold">🏦 Transferencia de premio</button>
+            </div>
+            <div class="mt-2 p-4 bg-purple-50 border-2 border-purple-300 rounded-xl text-center">
+                <p class="text-xs text-purple-700 uppercase font-bold">Saldo total disponible</p>
+                <div id="display-total" class="text-4xl font-black text-purple-900">0.00</div>
+            </div>
+            <button onclick="copiarWhatsApp()" class="w-full bg-blue-700 p-3 rounded-lg font-bold">📋 Copiar a WhatsApp</button>
+            <button onclick="limpiar()" class="w-full bg-gray-700 p-2 rounded-lg text-sm">🧹 Limpiar</button>
+        </div>
+        <div id="lista-clientes" class="space-y-2 mt-4"></div>
+
+        <div class="dash-card p-4 rounded-xl">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-black text-purple-900">✏️ ANULACIÓN Y CORRECCIÓN</h3>
+                <button onclick="renderMovimientosCorreccion()" class="text-xs bg-red-600 text-white px-3 py-2 rounded-lg font-bold">🔄 Ver movimientos</button>
+            </div>
+            <p class="text-xs text-purple-700 mb-3">Aquí puedes anular un movimiento registrado por error. Primero selecciona el cliente arriba.</p>
+            <div id="movimientos-correccion" class="space-y-2 max-h-72 overflow-y-auto text-sm">
+                <p class="text-center text-purple-500 py-3">Selecciona un cliente para ver sus movimientos y corregirlos.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA CUENTAS POR COBRAR -->
+    <div id="tab-cobros" class="tab-content space-y-4">
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-bold text-fuchsia-700">📒 Cuentas por cobrar</h2>
+                <p class="text-xs text-purple-700">Clientes con saldo pendiente</p>
+            </div>
+            <button onclick="renderCuentasPorCobrar()" class="text-xs bg-purple-700 text-white px-3 py-2 rounded-lg font-bold">🔄 Actualizar</button>
+        </div>
+
+        <div class="bg-red-50 border-2 border-red-200 p-5 rounded-xl text-center">
+            <p class="text-xs text-red-700 uppercase font-bold">Total pendiente por cobrar</p>
+            <div id="total-cobrar" class="text-4xl font-black text-red-700">0.00 Bs</div>
+            <p id="cantidad-cobrar" class="text-xs text-red-600 mt-1">0 clientes pendientes</p>
+        </div>
+
+        <div id="lista-cuentas-cobrar" class="space-y-3">
+            <p class="text-center text-purple-500 py-5">No hay clientes con saldo pendiente.</p>
+        </div>
+    </div>
+
+    <!-- PESTAÑA DATOS BANCARIOS -->
+    <div id="tab-datos" class="tab-content space-y-4">
+        <h2 class="text-xl font-bold text-fuchsia-700">💳 Datos Agencia FYD</h2>
+        <div class="bg-luxury p-5 rounded-xl border border-fuchsia-300 space-y-4">
+            <div>
+                <p class="text-fuchsia-600 font-bold">📱 PAGO MÓVIL</p>
+                <p>Banco Venezuela (0102)</p>
+                <p>Tel: 04249249777</p>
+                <p>Cédula: V28701248</p>
+            </div>
+            <div class="border-t border-fuchsia-300 pt-4">
+                <p class="text-fuchsia-600 font-bold">🏦 TRANSFERENCIA</p>
+                <p>Tipo de cuenta: VES</p>
+                <p>Cuenta: 01020427570001572171</p>
+                <p>Cédula: V28701248</p>
+                <p>Titular: Mariale Jose Manzano Naranjo</p>
+            </div>
+            <button onclick="copiarMisDatos()" class="w-full bg-purple-700 p-3 mt-4 rounded-lg font-bold">📋 Copiar todos los datos</button>
+        </div>
+    </div>
+
+
+    <!-- PESTAÑA CUADRE DE PARLEY -->
+    <div id="tab-parley" class="tab-content space-y-4">
+        <div class="bg-gradient-to-r from-purple-900 to-fuchsia-700 text-white p-5 rounded-2xl shadow-xl">
+            <p class="text-sm opacity-90">🏦 Control de Parley</p>
+            <h2 class="text-2xl font-black mt-1">Cuadre semanal</h2>
+            <p class="text-xs mt-1 opacity-90">Registra cada día y al final tendrás el total de la semana.</p>
+        </div>
+
+        <div class="bg-luxury p-4 rounded-xl border border-fuchsia-300">
+            <label class="block text-xs font-bold text-purple-700 mb-1">📅 SEMANA DEL CUADRE</label>
+            <input type="date" id="parley-semana" onchange="cargarSemanaParley()"
+                   class="w-full p-3 bg-white/70 border border-fuchsia-400 rounded-lg text-purple-950 font-bold">
+            <p class="text-xs text-purple-600 mt-2">Elige cualquier día y se organizará automáticamente de lunes a domingo.</p>
+        </div>
+
+        <div class="bg-luxury p-4 rounded-xl border border-fuchsia-300 space-y-3">
+            <div class="flex justify-between items-center">
+                <h3 class="font-black text-purple-900">➕ Registrar movimiento diario</h3>
+                <span id="parley-dia-label" class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-lg font-bold">Lunes</span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-purple-700 mb-1">💵 VENTA DEL DÍA</label>
+                <div class="flex gap-2">
+                    <input type="number" id="parley-venta" min="0" step="0.01"
+                           class="flex-1 p-3 bg-white/70 border border-fuchsia-400 rounded-lg text-purple-950 font-bold"
+                           placeholder="Total vendido hoy">
+                    <button onclick="agregarParleyVenta()" class="bg-purple-700 text-white px-5 rounded-lg font-black">+</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-emerald-700 mb-1">🏆 PREMIOS DEL DÍA</label>
+                <div class="flex gap-2">
+                    <input type="number" id="parley-premio" min="0" step="0.01"
+                           class="flex-1 p-3 bg-white/70 border border-emerald-400 rounded-lg text-purple-950 font-bold"
+                           placeholder="Total pagado en premios hoy">
+                    <button onclick="agregarParleyPremio()" class="bg-emerald-600 text-white px-5 rounded-lg font-black">+</button>
+                </div>
+            </div>
+            <p id="parley-dia-actual" class="text-xs text-purple-600 font-bold"></p>
+        </div>
+
+        <div class="dash-card p-3 rounded-xl">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-black text-purple-900">📋 TABLA SEMANAL</h3>
+                <span class="text-xs text-purple-600">Comisión 11%</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-purple-100 text-purple-900">
+                            <th class="p-2 text-left">Día</th>
+                            <th class="p-2 text-right">Ventas</th>
+                            <th class="p-2 text-right">Premios</th>
+                            <th class="p-2 text-right">11%</th>
+                            <th class="p-2 text-right">Banquero</th>
+                        </tr>
+                    </thead>
+                    <tbody id="parley-tabla-semanal"></tbody>
+                    <tfoot>
+                        <tr class="bg-purple-900 text-white font-black">
+                            <td class="p-2">TOTAL</td>
+                            <td id="parley-semana-ventas" class="p-2 text-right">0.00</td>
+                            <td id="parley-semana-premios" class="p-2 text-right">0.00</td>
+                            <td id="parley-semana-comision" class="p-2 text-right">0.00</td>
+                            <td id="parley-semana-utilidad" class="p-2 text-right">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-purple-50 border border-purple-200 p-4 rounded-xl">
+                <p class="text-xs text-purple-700 font-bold uppercase">💵 Ventas semana</p>
+                <p id="parley-total-ventas" class="text-2xl font-black text-purple-900 mt-1">0.00 Bs</p>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
+                <p class="text-xs text-emerald-700 font-bold uppercase">🏆 Premios semana</p>
+                <p id="parley-total-premios" class="text-2xl font-black text-emerald-700 mt-1">0.00 Bs</p>
+            </div>
+            <div class="bg-fuchsia-50 border border-fuchsia-200 p-4 rounded-xl">
+                <p class="text-xs text-fuchsia-700 font-bold uppercase">💜 Mi comisión 11%</p>
+                <p id="parley-comision" class="text-2xl font-black text-fuchsia-700 mt-1">0.00 Bs</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                <p class="text-xs text-amber-700 font-bold uppercase">🏦 Utilidad banquero</p>
+                <p id="parley-utilidad" class="text-2xl font-black text-amber-700 mt-1">0.00 Bs</p>
+            </div>
+        </div>
+
+        <div class="bg-white/80 border-2 border-purple-300 rounded-xl p-4">
+            <p class="text-xs text-purple-700 uppercase font-bold">📊 CUADRE DE LA SEMANA</p>
+            <p class="text-sm text-purple-900 mt-1">Ventas − Premios − Mi comisión (11%) = Utilidad del banquero</p>
+            <p id="parley-formula" class="text-sm font-black text-purple-700 mt-2">0.00 − 0.00 − 0.00 = 0.00 Bs</p>
+        </div>
+
+        <button onclick="copiarCuadreParley()" class="w-full bg-blue-700 text-white p-3 rounded-lg font-black">
+            📋 Copiar resumen semanal para el banquero
+        </button>
+        <button onclick="copiarCuadreParleyDiario()" class="w-full bg-cyan-700 text-white p-3 rounded-lg font-black">
+            📲 Copiar reporte del día seleccionado
+        </button>
+        <button onclick="limpiarCuadreParley()" class="w-full bg-gray-700 text-white p-2 rounded-lg text-sm font-bold">
+            🧹 Vaciar semana seleccionada
+        </button>
+    </div>
+</div>
+
+<div class="fixed bottom-0 w-full bg-gradient-to-r from-pink-200 to-purple-200 border-t border-fuchsia-300 p-4 flex justify-around z-50">
+    <button onclick="showTab('tab-home')" class="text-2xl">🏠</button>
+    <button onclick="showTab('tab-caja')" class="text-2xl">💰</button>
+    <button onclick="showTab('tab-parley')" class="text-2xl" title="Cuadre de Parley">🏦</button>
+    <button onclick="showTab('tab-cobros')" class="text-2xl">📒</button>
+    <button onclick="showTab('tab-datos')" class="text-2xl">💳</button>
+</div>
+
+<script>
+    let db;
+    const TEL = "04249249777", CED = "28701248";
+
+    function copiarMisDatos() {
+        const datos = "📋 DATOS DE AGENCIA FYD\n\n📱 PAGO MÓVIL:\nBanco Venezuela (0102)\nTel: 04249249777\nCédula: V28701248\n\n🏦 TRANSFERENCIA:\nCuenta: 01020427570001572171\nCédula: V28701248\nTitular: Mariale Jose Manzano Naranjo";
+        navigator.clipboard.writeText(datos);
+    }
+
+    function getClientes() {
+        return JSON.parse(localStorage.getItem('agencia_fy_data') || '{}');
+    }
+
+    function getMovimientos() {
+        return JSON.parse(localStorage.getItem('fyd_movimientos') || '[]');
+    }
+
+    function registrarMovimiento(cliente, tipo, monto) {
+        const lista = getMovimientos();
+        lista.unshift({ cliente, tipo, monto: Number(monto), fecha: new Date().toISOString() });
+        localStorage.setItem('fyd_movimientos', JSON.stringify(lista.slice(0, 500)));
+        renderInicio();
+    }
+
+    function renderInicio() {
+        const db_c = getClientes();
+        const movimientos = getMovimientos();
+        const clientes = Object.keys(db_c);
+        let totalSaldo = 0, totalPremios = 0;
+        clientes.forEach(n => {
+            const d = db_c[n] || {};
+            totalSaldo += (Number(d.saldo)||0);
+            totalPremios += Number(d.premios)||0;
+        });
+
+        const hoy = new Date().toISOString().slice(0,10);
+        const hoyMov = movimientos.filter(m => (m.fecha||'').slice(0,10) === hoy);
+        const sum = t => hoyMov.filter(m => m.tipo === t).reduce((a,m) => a + Number(m.monto||0), 0);
+
+        const set = (id, val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
+        set('home-clientes', clientes.length);
+        // En el inicio, CASHEAS AGREGADOS muestra los clientes que tienen Cashea acreditado.
+        const cantidadCasheas = clientes.filter(n => {
+            const d = db_c[n] || {};
+            return (Number(d.saldo) || 0) > 0;
+        }).length;
+        set('home-cashea', cantidadCasheas);
+        set('home-premios', totalPremios.toFixed(2));
+        set('home-jugadas', sum('Jugada').toFixed(2));
+        set('home-hoy-acreditado', sum('Pago').toFixed(2));
+        set('home-hoy-jugadas', sum('Jugada').toFixed(2));
+        set('home-hoy-premios', sum('Premio').toFixed(2));
+        set('home-hoy-retiros', sum('Transferencia de premio').toFixed(2));
+
+        const fecha = document.getElementById('fecha-inicio');
+        if (fecha) fecha.textContent = new Date().toLocaleDateString('es-VE',{day:'2-digit',month:'short'});
+
+        const cont = document.getElementById('home-movimientos');
+        if (cont) {
+            const ultimos = hoyMov.slice(0,5);
+            cont.innerHTML = ultimos.length ? ultimos.map(m => {
+                const icon = m.tipo==='Pago'?'💵':m.tipo==='Jugada'?'🎰':m.tipo==='Premio'?'🏆':m.tipo==='Transferencia de premio'?'🏦':'➖';
+                return `<div class="flex justify-between items-center bg-white/70 p-2 rounded-lg">
+                    <span>${icon} <b>${m.cliente}</b><br><small class="text-purple-600">${m.tipo}</small></span>
+                    <b class="text-purple-900">${Number(m.monto).toFixed(2)}</b>
+                </div>`;
+            }).join('') : '<p class="text-center text-purple-500 py-3">Todavía no hay movimientos hoy.</p>';
+        }
+        buscarDesdeInicio();
+    }
+
+    function buscarDesdeInicio() {
+        const q = (document.getElementById('home-buscar')?.value || '').trim().toLowerCase();
+        const cont = document.getElementById('home-resultados');
+        if (!cont) return;
+        if (!q) { cont.innerHTML=''; return; }
+        const db_c = getClientes();
+        const encontrados = Object.keys(db_c).filter(n => n.toLowerCase().includes(q)).slice(0,8);
+        cont.innerHTML = encontrados.length ? encontrados.map(n => {
+            const d=db_c[n]||{};
+            const s=Number(d.saldo)||0;
+            const p=Number(d.premios)||0;
+            const pendiente=Number(d.saldoPendiente)||0;
+            const safe=n.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+            return `<button onclick="seleccionarClienteInicio(${JSON.stringify(n)})" class="w-full text-left bg-white/80 border border-fuchsia-200 p-3 rounded-xl">
+                <div class="font-black text-purple-900">${safe}</div>
+                <div class="text-xs mt-1">💰 Saldo positivo: <b>${s.toFixed(2)}</b> &nbsp; 🏆 Premio: <b>${p.toFixed(2)}</b> &nbsp; ⚠️ Pendiente: <b>${pendiente.toFixed(2)}</b></div>
+            </button>`;
+        }).join('') : '<p class="text-center text-purple-500 py-2">Cliente no encontrado.</p>';
+    }
+
+    function seleccionarClienteInicio(nombre) {
+        document.getElementById('inp-nombre').value = nombre;
+        showTab('tab-caja');
+        renderCaja(nombre);
+    }
+
+    function nuevoCliente() {
+        showTab('tab-caja');
+        setTimeout(() => {
+            const input=document.getElementById('inp-nombre');
+            input.focus();
+            input.value='';
+        }, 50);
+    }
+
+    function irACaja(accion) {
+        showTab('tab-caja');
+        setTimeout(() => {
+            document.getElementById('inp-monto').focus();
+            if (accion === 'pago') document.getElementById('inp-monto').placeholder='Monto del pago';
+            if (accion === 'jugadas') document.getElementById('inp-monto').placeholder='Monto de la jugada';
+            if (accion === 'premios') document.getElementById('inp-monto').placeholder='Monto del premio';
+        }, 50);
+    }
+
+    function renderCaja(nombreSeleccionado = '') {
+        const db_c = JSON.parse(localStorage.getItem('agencia_fy_data') || '{}');
+        const list = document.getElementById('lista-clientes');
+        if (nombreSeleccionado) {
+            const d = db_c[nombreSeleccionado] || { saldo:0, premios:0, jugadas:0, transfPremios:0 };
+            const saldo = Number(d.saldo) || 0;
+            const premios = Number(d.premios) || 0;
+            const jugadas = Number(d.jugadas) || 0;
+            const retiros = Number(d.transfPremios) || 0;
+
+            // ARRIBA: acumulados, no se descuentan por jugadas ni transferencias.
+            document.getElementById('display-saldo').innerText = saldo.toFixed(2);
+            document.getElementById('display-premios').innerText = premios.toFixed(2);
+
+            // ABAJO: único valor que se calcula como saldo neto.
+            const totalDisponible = saldo + premios - jugadas - retiros;
+            const pendienteCalculado = Math.max(0, -totalDisponible);
+            document.getElementById('display-pendiente').innerText = pendienteCalculado.toFixed(2);
+
+            const totalEl = document.getElementById('display-total');
+            totalEl.innerText = totalDisponible.toFixed(2) + ' ' + (totalDisponible < 0 ? 'Bs' : '+');
+            totalEl.className = 'text-4xl font-black ' + (totalDisponible < 0 ? 'text-red-700' : 'text-purple-900');
+        }
+        list.innerHTML = '<h3 class="font-bold text-gray-500 mt-4">Tus Clientes:</h3>';
+        Object.keys(db_c).forEach(n => {
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-lg border ${n === nombreSeleccionado ? 'bg-purple-900 border-purple-400' : 'bg-luxury border-fuchsia-300'} flex justify-between cursor-pointer`;
+            div.innerHTML = `<span onclick="document.getElementById('inp-nombre').value='${n.replace(/'/g,"\\'")}'; renderCaja('${n.replace(/'/g,"\\'")}')">${n}</span>
+                             <button onclick="eliminarCliente('${n.replace(/'/g,"\\'")}');event.stopPropagation();" class="text-red-500 font-bold">🗑</button>`;
+            list.appendChild(div);
+        });
+    }
+
+    function eliminarCliente(nombre){
+        if(!confirm('¿Eliminar a este cliente?')) return;
+        let d=JSON.parse(localStorage.getItem('agencia_fy_data')||'{}');
+        delete d[nombre];
+        localStorage.setItem('agencia_fy_data',JSON.stringify(d));
+        document.getElementById('inp-nombre').value='';
+        renderCaja();
+    }
+
+    function operar(campo) {
+        const nombre = document.getElementById('inp-nombre').value.trim();
+        if(!nombre) return alert("Escribe nombre");
+        const monto = parseFloat(document.getElementById('inp-monto').value);
+        if(!monto || monto <= 0) return alert("Escribe un monto válido.");
+
+        let db_c = JSON.parse(localStorage.getItem('agencia_fy_data') || '{}');
+        if(!db_c[nombre]) db_c[nombre] = { saldo:0, premios:0, premiosGanados:0, saldoPendiente:0, jugadas:0, transfPremios:0 };
+
+        const d = db_c[nombre];
+
+        // PAGO / CASHEA: ambos aumentan el saldo positivo disponible.
+        if (campo === 'cashea') {
+            d.saldo = (Number(d.saldo) || 0) + monto;
+            d.casheaAgregado = (Number(d.casheaAgregado) || 0) + monto;
+            registrarMovimiento(nombre, 'Acreditar Cashea', monto);
+        }
+
+        // JUGADAS: se registran como consumo, pero NO modifican los números de arriba.
+        // La resta se refleja únicamente en la cuenta total de abajo.
+        else if (campo === 'jugadas') {
+            d.jugadas = (Number(d.jugadas) || 0) + monto;
+            registrarMovimiento(nombre, 'Jugada', monto);
+        }
+
+        // PAGO: aumenta el saldo positivo disponible.
+        else if (campo === 'pago') {
+            d.saldo = (Number(d.saldo) || 0) + monto;
+            d.pagosRegistrados = (Number(d.pagosRegistrados) || 0) + monto;
+            registrarMovimiento(nombre, 'Pago', monto);
+        }
+
+        // PREMIO: aumenta únicamente el premio disponible.
+        else if (campo === 'premios') {
+            d.premios = (Number(d.premios) || 0) + monto;
+            d.premiosGanados = (Number(d.premiosGanados) || 0) + monto;
+            registrarMovimiento(nombre, 'Premio', monto);
+        }
+
+        // RETIRO / TRANSFERENCIA: se registra como retiro, pero NO modifica el número de premios de arriba.
+        else if (campo === 'transf') {
+            d.transfPremios = (Number(d.transfPremios) || 0) + monto;
+            registrarMovimiento(nombre, 'Transferencia de premio', monto);
+        }
+
+        localStorage.setItem('agencia_fy_data', JSON.stringify(db_c));
+        document.getElementById('inp-monto').value='';
+        renderCaja(nombre);
+    }
+
+
+    function copiarWhatsApp() {
+        const n = document.getElementById('inp-nombre').value.trim();
+        if (!n) return;
+        const db_c = JSON.parse(localStorage.getItem('agencia_fy_data') || '{}');
+        const d = db_c[n] || { saldo:0, premios:0, premiosGanados:0, jugadas:0, transfPremios:0 };
+        const saldo = Number(d.saldo) || 0;
+        const premios = Number(d.premios) || 0;
+        const jugadas = Number(d.jugadas) || 0;
+        const retiros = Number(d.transfPremios) || 0;
+        const saldoTotal = saldo + premios - jugadas - retiros;
+        let estadoTotal = '';
+        if (saldoTotal < 0) {
+            estadoTotal = `⚠️ Tienes un saldo pendiente de ${Math.abs(saldoTotal).toFixed(2)} Bs`;
+        } else {
+            estadoTotal = `💵 Saldo total disponible: ${saldoTotal.toFixed(2)} Bs`;
+        }
+        const txt = `📊 RESUMEN AGENCIA FYD\n👤 Cliente: ${n}\n💰 Saldo positivo: ${saldo.toFixed(2)} Bs\n🏆 Premios ganados: ${premios.toFixed(2)} Bs\n🎰 Jugadas: ${(Number(d.jugadas)||0).toFixed(2)} Bs\n🏦 Transferencias de premios: ${(Number(d.transfPremios)||0).toFixed(2)} Bs\n\n━━━━━━━━━━━━━━\n${estadoTotal}\n━━━━━━━━━━━━━━`;
+        const ta=document.createElement('textarea');
+        ta.value=txt;
+        document.body.appendChild(ta);
+        ta.select();
+        try{document.execCommand('copy');alert('Resumen copiado.');}
+        catch(e){navigator.clipboard?.writeText(txt);}
+        document.body.removeChild(ta);
+    }
+function renderMovimientosCorreccion(nombreSeleccionado = '') {
+        const nombre = nombreSeleccionado || document.getElementById('inp-nombre')?.value.trim() || '';
+        const cont = document.getElementById('movimientos-correccion');
+        if (!cont) return;
+
+        if (!nombre) {
+            cont.innerHTML = '<p class="text-center text-purple-500 py-3">Selecciona un cliente para ver sus movimientos.</p>';
+            return;
+        }
+
+        const movimientos = getMovimientos().filter(m => m.cliente === nombre);
+        if (!movimientos.length) {
+            cont.innerHTML = '<p class="text-center text-purple-500 py-3">Este cliente todavía no tiene movimientos.</p>';
+            return;
+        }
+
+        const iconos = {
+            'Pago':'💵',
+            'Acreditar Cashea':'💜',
+            'Jugada':'🎰',
+            'Premio':'🏆',
+            'Transferencia de premio':'🏦'
+        };
+
+        cont.innerHTML = movimientos.map((m, i) => {
+            const fecha = m.fecha ? new Date(m.fecha).toLocaleString('es-VE') : '';
+            const icon = iconos[m.tipo] || '➖';
+            return `<div class="bg-white/70 p-3 rounded-lg border border-fuchsia-200 flex justify-between items-center gap-2">
+                <span class="min-w-0"><b>${icon} ${m.tipo}</b><br><small class="text-purple-600">${fecha}</small><br><small>${Number(m.monto||0).toFixed(2)} Bs</small></span>
+                <button onclick="anularMovimiento(${i}, '${nombre.replace(/'/g, "\\'")}')" class="shrink-0 bg-red-500 text-white px-3 py-2 rounded-lg font-bold text-xs">Anular</button>
+            </div>`;
+        }).join('');
+    }
+
+    function anularMovimiento(indiceCliente, nombre) {
+        const movimientosCliente = getMovimientos().filter(m => m.cliente === nombre);
+        const movimiento = movimientosCliente[indiceCliente];
+        if (!movimiento) return;
+
+        if (!confirm(`¿Anular ${movimiento.tipo} por ${Number(movimiento.monto||0).toFixed(2)} Bs?\n\nEsta acción revertirá el movimiento y no se puede deshacer.`)) return;
+
+        const clientes = getClientes();
+        const d = clientes[nombre];
+        if (!d) return;
+
+        const monto = Math.max(0, Number(movimiento.monto) || 0);
+
+        if (movimiento.tipo === 'Pago' || movimiento.tipo === 'Acreditar Cashea') {
+            d.saldo = Math.max(0, (Number(d.saldo) || 0) - monto);
+        } else if (movimiento.tipo === 'Premio') {
+            d.premios = Math.max(0, (Number(d.premios) || 0) - monto);
+        } else if (movimiento.tipo === 'Transferencia de premio') {
+            // La transferencia solo afecta el total de la cuenta; al anularla se revierte el retiro acumulado.
+            d.transfPremios = Math.max(0, (Number(d.transfPremios) || 0) - monto);
+        } else if (movimiento.tipo === 'Jugada') {
+            // La jugada solo afecta el total de la cuenta; al anularla se resta del acumulado de jugadas.
+            d.jugadas = Math.max(0, (Number(d.jugadas) || 0) - monto);
+        }
+
+        // Eliminar exactamente ese movimiento del historial.
+        const lista = getMovimientos();
+        const pos = lista.indexOf(movimiento);
+        if (pos >= 0) lista.splice(pos, 1);
+
+        // Registrar una constancia de anulación, sin alterar balances.
+        lista.unshift({
+            cliente: nombre,
+            tipo: 'Anulación de ' + movimiento.tipo,
+            monto,
+            fecha: new Date().toISOString()
+        });
+
+        localStorage.setItem('agencia_fy_data', JSON.stringify(clientes));
+        localStorage.setItem('fyd_movimientos', JSON.stringify(lista.slice(0, 500)));
+
+        renderCaja();
+        renderInicio();
+        const parleyFecha = document.getElementById('parley-semana');
+        if (parleyFecha) { parleyFecha.value = fechaLocalISO(); cargarSemanaParley(); }
+        renderHistorialCliente(nombre);
+        renderMovimientosCorreccion(nombre);
+        alert('Movimiento anulado y corregido.');
+    }
+
+    function renderCuentasPorCobrar() {
+        const clientes = getClientes();
+        const cont = document.getElementById('lista-cuentas-cobrar');
+        const totalEl = document.getElementById('total-cobrar');
+        const cantidadEl = document.getElementById('cantidad-cobrar');
+        if (!cont || !totalEl || !cantidadEl) return;
+
+        const pendientes = Object.keys(clientes).map(nombre => {
+            const d = clientes[nombre] || {};
+            return {
+                nombre,
+                pendiente: Math.max(0, Number(d.saldoPendiente) || 0),
+                saldo: Math.max(0, Number(d.saldo) || 0),
+                premios: Math.max(0, Number(d.premios) || 0)
+            };
+        }).filter(c => c.pendiente > 0).sort((a,b) => b.pendiente - a.pendiente);
+
+        const total = pendientes.reduce((sum, c) => sum + c.pendiente, 0);
+        totalEl.textContent = total.toFixed(2) + ' Bs';
+        cantidadEl.textContent = `${pendientes.length} cliente${pendientes.length === 1 ? '' : 's'} pendiente${pendientes.length === 1 ? '' : 's'}`;
+
+        if (!pendientes.length) {
+            cont.innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-xl p-5 text-center">
+                    <div class="text-4xl mb-2">✅</div>
+                    <p class="font-black text-green-700">¡No hay cuentas pendientes!</p>
+                    <p class="text-xs text-green-600 mt-1">Todos los clientes están al día.</p>
+                </div>`;
+            return;
+        }
+
+        cont.innerHTML = pendientes.map(c => {
+            const safe = c.nombre.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+            return `
+                <div class="bg-white/80 border border-red-200 rounded-xl p-4 shadow-sm">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="min-w-0">
+                            <p class="font-black text-purple-950 truncate">👤 ${safe}</p>
+                            <p class="text-xs text-purple-600 mt-1">Saldo positivo: ${c.saldo.toFixed(2)} Bs · Premios: ${c.premios.toFixed(2)} Bs</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <p class="text-xs text-red-600 font-bold uppercase">Debe</p>
+                            <p class="text-2xl font-black text-red-700">${c.pendiente.toFixed(2)} Bs</p>
+                        </div>
+                    </div>
+                    <button onclick="irACobro('${c.nombre.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" class="w-full mt-3 bg-purple-700 text-white p-2 rounded-lg font-bold text-sm">💰 Ver cliente en Caja</button>
+                </div>`;
+        }).join('');
+    }
+
+    function irACobro(nombre) {
+        document.getElementById('inp-nombre').value = nombre;
+        showTab('tab-caja');
+        renderCaja(nombre);
+    }
+
+    function limpiar() {
+        document.getElementById('inp-nombre').value = '';
+        document.getElementById('display-saldo').innerText = '0.00';
+        document.getElementById('display-premios').innerText = '0.00';
+        document.getElementById('display-pendiente').innerText = '0.00';
+        document.getElementById('display-total').innerText = '0.00';
+        document.getElementById('display-total').className = 'text-4xl font-black text-purple-900';
+        renderCaja();
+        renderInicio();
+        const parleyFecha = document.getElementById('parley-semana');
+        if (parleyFecha) { parleyFecha.value = fechaLocalISO(); cargarSemanaParley(); }
+    }
+
+    window.showTab = (id) => {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('tab-active'));
+        document.getElementById(id).classList.add('tab-active');
+        if (id === 'tab-home') renderInicio();
+        if (id === 'tab-cobros') renderCuentasPorCobrar();
+        if (id === 'tab-parley') cargarSemanaParley();
+    };
+
+    function migrarDatos() {
+        const raw = localStorage.getItem('agencia_fy_data');
+        if (!raw) return;
+        try {
+            const data = JSON.parse(raw);
+            let cambio = false;
+            Object.keys(data).forEach(nombre => {
+                const d = data[nombre] || {};
+                // Estructura actual: saldo positivo, premios, saldo pendiente, jugadas y transferencias de premios.
+                // Si existe la estructura anterior, conservamos su saldo disponible como saldo positivo.
+                if (d.saldo === undefined || d.saldo === null) {
+                    const pagos = Number(d.pagos) || 0;
+                    const jugadas = Number(d.jugadas) || 0;
+                    const transfAntigua = Number(d.transf) || 0;
+                    d.saldo = Math.max(0, pagos - jugadas - transfAntigua);
+                    cambio = true;
+                }
+                if (d.premios === undefined) { d.premios = 0; cambio = true; }
+                if (d.premiosGanados === undefined) { d.premiosGanados = Number(d.premios) || 0; cambio = true; }
+                if (d.saldoPendiente === undefined) { d.saldoPendiente = 0; cambio = true; }
+                if (d.jugadas === undefined) { d.jugadas = 0; cambio = true; }
+                if (d.transfPremios === undefined) { d.transfPremios = 0; cambio = true; }
+
+                // Dejamos de utilizar los campos antiguos en la interfaz.
+                delete d.pagos;
+                delete d.transf;
+                cambio = true;
+                data[nombre] = d;
+            });
+            if (cambio) localStorage.setItem('agencia_fy_data', JSON.stringify(data));
+        } catch (e) {
+            console.warn('No se pudieron migrar los datos anteriores.', e);
+        }
+    }
+
+
+    // ==================== CUADRE DE PARLEY ====================
+    let parleyCuadre = { ventas: 0, premios: 0 };
+    const PARLEY_COMISION = 0.11;
+
+    function fechaLocalISO(date = new Date()) {
+        const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function lunesDeSemana(fechaISO) {
+        const d=new Date(fechaISO+'T12:00:00');
+        const dia=d.getDay();
+        d.setDate(d.getDate() + (dia===0 ? -6 : 1-dia));
+        return fechaLocalISO(d);
+    }
+
+    function diasSemanaParley(lunesISO) {
+        const base=new Date(lunesISO+'T12:00:00');
+        return Array.from({length:7},(_,i)=>{
+            const d=new Date(base); d.setDate(base.getDate()+i); return fechaLocalISO(d);
+        });
+    }
+
+    function getParleySemanas() {
+        return JSON.parse(localStorage.getItem('fyd_parley_semanas') || '{}');
+    }
+
+    function guardarParleySemanas(data) {
+        localStorage.setItem('fyd_parley_semanas', JSON.stringify(data));
+    }
+
+    function obtenerDatosDiaParley(fechaISO) {
+        const semanas=getParleySemanas();
+        return semanas[fechaISO] || {ventas:0,premios:0};
+    }
+
+    function seleccionarFechaParley(fechaISO) {
+        document.getElementById('parley-semana').value=fechaISO;
+        cargarSemanaParley();
+    }
+
+    function cargarSemanaParley() {
+        const input=document.getElementById('parley-semana');
+        if(!input) return;
+        if(!input.value) input.value=fechaLocalISO();
+
+        const lunes=lunesDeSemana(input.value);
+        const dias=diasSemanaParley(lunes);
+        const semanas=getParleySemanas();
+        const nombres=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+        let totalVentas=0,totalPremios=0;
+
+        document.getElementById('parley-tabla-semanal').innerHTML=dias.map((fecha,i)=>{
+            const d=semanas[fecha]||{ventas:0,premios:0};
+            const ventas=Number(d.ventas)||0, premios=Number(d.premios)||0;
+            const comision=ventas*PARLEY_COMISION, utilidad=ventas-premios-comision;
+            totalVentas+=ventas; totalPremios+=premios;
+            const sel=fecha===input.value;
+            return `<tr onclick="seleccionarFechaParley('${fecha}')" class="cursor-pointer border-b border-purple-100 ${sel?'bg-fuchsia-100':'bg-white/70'}">
+                <td class="p-2"><b>${nombres[i]}</b><br><span class="text-[10px] text-purple-500">${fecha}</span></td>
+                <td class="p-2 text-right font-bold">${ventas.toFixed(2)}</td>
+                <td class="p-2 text-right font-bold">${premios.toFixed(2)}</td>
+                <td class="p-2 text-right text-fuchsia-700 font-bold">${comision.toFixed(2)}</td>
+                <td class="p-2 text-right ${utilidad<0?'text-red-700':'text-amber-700'} font-black">${utilidad.toFixed(2)}</td>
+            </tr>`;
+        }).join('');
+
+        const comisionTotal=totalVentas*PARLEY_COMISION;
+        const utilidadTotal=totalVentas-totalPremios-comisionTotal;
+        document.getElementById('parley-semana-ventas').textContent=totalVentas.toFixed(2);
+        document.getElementById('parley-semana-premios').textContent=totalPremios.toFixed(2);
+        document.getElementById('parley-semana-comision').textContent=comisionTotal.toFixed(2);
+        document.getElementById('parley-semana-utilidad').textContent=utilidadTotal.toFixed(2);
+        document.getElementById('parley-total-ventas').textContent=totalVentas.toFixed(2)+' Bs';
+        document.getElementById('parley-total-premios').textContent=totalPremios.toFixed(2)+' Bs';
+        document.getElementById('parley-comision').textContent=comisionTotal.toFixed(2)+' Bs';
+        document.getElementById('parley-utilidad').textContent=utilidadTotal.toFixed(2)+' Bs';
+        document.getElementById('parley-formula').textContent=`${totalVentas.toFixed(2)} − ${totalPremios.toFixed(2)} − ${comisionTotal.toFixed(2)} = ${utilidadTotal.toFixed(2)} Bs`;
+
+        const d=semanas[input.value]||{ventas:0,premios:0};
+        parleyCuadre={ventas:Number(d.ventas)||0,premios:Number(d.premios)||0};
+        const idx=dias.indexOf(input.value);
+        document.getElementById('parley-dia-label').textContent=idx>=0?nombres[idx]:'';
+        document.getElementById('parley-dia-actual').textContent=idx>=0?`${nombres[idx]} — ${input.value}`:input.value;
+    }
+
+    function agregarParleyVenta() {
+        const input=document.getElementById('parley-venta'), monto=Number(input.value);
+        if(!monto||monto<=0) return alert('Escribe un monto de venta válido.');
+        const fecha=document.getElementById('parley-semana').value||fechaLocalISO();
+        const semanas=getParleySemanas();
+        if(!semanas[fecha]) semanas[fecha]={ventas:0,premios:0};
+        semanas[fecha].ventas=(Number(semanas[fecha].ventas)||0)+monto;
+        guardarParleySemanas(semanas); input.value=''; cargarSemanaParley();
+    }
+
+    function agregarParleyPremio() {
+        const input=document.getElementById('parley-premio'), monto=Number(input.value);
+        if(!monto||monto<=0) return alert('Escribe un monto de premio válido.');
+        const fecha=document.getElementById('parley-semana').value||fechaLocalISO();
+        const semanas=getParleySemanas();
+        if(!semanas[fecha]) semanas[fecha]={ventas:0,premios:0};
+        semanas[fecha].premios=(Number(semanas[fecha].premios)||0)+monto;
+        guardarParleySemanas(semanas); input.value=''; cargarSemanaParley();
+    }
+
+    function copiarTextoParley(txt,msg) {
+        const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); alert(msg); }
+        catch(e) { navigator.clipboard?.writeText(txt); alert(msg); }
+        document.body.removeChild(ta);
+    }
+
+    function copiarCuadreParley() {
+        const input=document.getElementById('parley-semana'), lunes=lunesDeSemana(input.value), dias=diasSemanaParley(lunes);
+        const semanas=getParleySemanas(), nombres=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+        let totalVentas=0,totalPremios=0;
+        const lineas=dias.map((fecha,i)=>{
+            const d=semanas[fecha]||{ventas:0,premios:0};
+            const ventas=Number(d.ventas)||0,premios=Number(d.premios)||0,comision=ventas*PARLEY_COMISION,utilidad=ventas-premios-comision;
+            totalVentas+=ventas; totalPremios+=premios;
+            return `${nombres[i]}: Venta ${ventas.toFixed(2)} Bs | Premios ${premios.toFixed(2)} Bs | 11% ${comision.toFixed(2)} Bs | Banquero ${utilidad.toFixed(2)} Bs`;
+        });
+        if(totalVentas<=0&&totalPremios<=0) return alert('Agrega datos antes de generar el cuadre semanal.');
+        const comision=totalVentas*PARLEY_COMISION, utilidad=totalVentas-totalPremios-comision;
+        const txt=`🏦 CUADRE SEMANAL DE PARLEY — AGENCIA F&D\n📅 Semana: ${lunes} al ${dias[6]}\n\n${lineas.join('\n')}\n\n━━━━━━━━━━━━━━\n💵 VENTAS: ${totalVentas.toFixed(2)} Bs\n🏆 PREMIOS: ${totalPremios.toFixed(2)} Bs\n💜 MI COMISIÓN (11%): ${comision.toFixed(2)} Bs\n🏦 UTILIDAD DEL BANQUERO: ${utilidad.toFixed(2)} Bs\n━━━━━━━━━━━━━━`;
+        copiarTextoParley(txt,'Cuadre semanal copiado. Ya puedes enviárselo al banquero.');
+    }
+
+    function copiarCuadreParleyDiario() {
+        const fecha=document.getElementById('parley-semana').value, d=obtenerDatosDiaParley(fecha);
+        const ventas=Number(d.ventas)||0,premios=Number(d.premios)||0,comision=ventas*PARLEY_COMISION,utilidad=ventas-premios-comision;
+        if(ventas<=0&&premios<=0) return alert('No hay movimientos registrados para ese día.');
+        const txt=`🏦 REPORTE DIARIO DE PARLEY — AGENCIA F&D\n📅 ${fecha}\n\n💵 Ventas: ${ventas.toFixed(2)} Bs\n🏆 Premios: ${premios.toFixed(2)} Bs\n💜 Mi comisión (11%): ${comision.toFixed(2)} Bs\n🏦 Utilidad del banquero: ${utilidad.toFixed(2)} Bs`;
+        copiarTextoParley(txt,'Reporte diario copiado. Ya puedes enviárselo al banquero.');
+    }
+
+    function limpiarCuadreParley() {
+        const input=document.getElementById('parley-semana'), lunes=lunesDeSemana(input.value), dias=diasSemanaParley(lunes);
+        if(!confirm(`¿Vaciar todos los datos de esta semana (${lunes} al ${dias[6]})? Esta acción no se puede deshacer.`)) return;
+        const semanas=getParleySemanas(); dias.forEach(d=>delete semanas[d]); guardarParleySemanas(semanas);
+        document.getElementById('parley-venta').value=''; document.getElementById('parley-premio').value=''; cargarSemanaParley();
+    }
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        migrarDatos();
+        const { createClient } = supabase;
+        db = createClient('https://jzdqevtcyxblglkrbkhb.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6ZHFldnRjeXhibGdsa3Jia2hiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMjg5NzEsImV4cCI6MjA5OTcwNDk3MX0.lvC7PUMnLrzRDKaqz-V8YKxqtVonqiI9i9qyjSWFJ9w');
+        
+        const fechaStatsReg = document.getElementById('stats-fecha-reg');
+        if(fechaStatsReg) fechaStatsReg.value = new Date().toISOString().split('T')[0];
+
+        renderCaja();
+        renderInicio();
+        const parleyFecha = document.getElementById('parley-semana');
+        if (parleyFecha) { parleyFecha.value = fechaLocalISO(); cargarSemanaParley(); }
+        
+    });
+</script>
+</body>
+</html>

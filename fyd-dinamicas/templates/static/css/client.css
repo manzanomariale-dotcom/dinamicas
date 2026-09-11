@@ -1,0 +1,242 @@
+/* DISEÑO MORADO / PREMIUM / JUVENIL / MOBILE-FIRST */
+:root {
+    --bg-dark: #120924;
+    --bg-card: #1d1138;
+    --purple-primary: #7c3aed;
+    --purple-light: #a78bfa;
+    --purple-bright: #c084fc;
+    --purple-glow: rgba(167, 139, 250, 0.3);
+    --text-white: #ffffff;
+    --text-muted: #cbd5e1;
+    --green-success: #10b981;
+    --red-error: #ef4444;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-white);
+    padding-bottom: 40px;
+}
+
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.header h1 {
+    font-size: 2.2rem;
+    color: var(--purple-bright);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 15px var(--purple-glow);
+}
+
+.header h2 {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* CONTADOR TICKETS */
+.counter-card {
+    background: linear-gradient(135deg, #2e1065, #4c1d95);
+    border: 2px solid var(--purple-light);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 8px 25px var(--purple-glow);
+    margin-bottom: 25px;
+}
+
+.counter-icon {
+    font-size: 2.5rem;
+}
+
+.counter-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text-white);
+    margin: 5px 0;
+}
+
+/* CUENTA REGRESIVA */
+.timer-section {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.timer-title {
+    color: var(--purple-light);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.countdown {
+    display: flex;
+    justify-content: space-around;
+}
+
+.time-block {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    border-radius: 10px;
+    min-width: 60px;
+}
+
+.time-block span {
+    display: block;
+}
+
+.time-num {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--purple-bright);
+}
+
+.time-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* RULETA VISUAL CLIENTE */
+.wheel-section {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.preview-wheel {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 8px solid var(--purple-light);
+    margin: 15px auto;
+    background: conic-gradient(
+        #7c3aed 0deg 60deg,
+        #4c1d95 60deg 120deg,
+        #a78bfa 120deg 180deg,
+        #6d28d9 180deg 240deg,
+        #c084fc 240deg 300deg,
+        #3b0764 300deg 360deg
+    );
+    box-shadow: 0 0 20px var(--purple-glow);
+}
+
+/* BOTONES */
+.btn-primary {
+    width: 100%;
+    background: linear-gradient(90deg, var(--purple-primary), var(--purple-bright));
+    color: white;
+    border: none;
+    padding: 16px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px var(--purple-glow);
+    transition: transform 0.2s;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+/* FORMULARIO Y MODAL */
+.form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--purple-light);
+    font-size: 0.9rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #4c1d95;
+    background: #0f0720;
+    color: white;
+    font-size: 1rem;
+}
+
+textarea.form-control {
+    height: 120px;
+    resize: none;
+}
+
+/* DETECCION */
+.detected-box {
+    background: #160b2e;
+    border: 1px solid var(--purple-light);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.detected-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.detected-label {
+    color: var(--text-muted);
+}
+
+.detected-val {
+    font-weight: bold;
+    color: var(--purple-bright);
+}
+
+.badge-valid {
+    color: var(--green-success);
+    font-weight: bold;
+}
+
+.badge-invalid {
+    color: var(--red-error);
+    font-weight: bold;
+}
+
+/* SECCION COMO PARTICIPAR / REGLAS */
+.info-section {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 20px;
+}
+
+.info-section h3 {
+    color: var(--purple-light);
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.info-section ol {
+    padding-left: 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}

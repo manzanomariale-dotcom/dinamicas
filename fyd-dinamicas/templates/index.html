@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ config.title }} - Agencia FyD</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-main: #0b061a;
+      --bg-card: rgba(26, 15, 48, 0.85);
+      --border-color: rgba(167, 139, 250, 0.2);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --purple-primary: #8b5cf6;
+      --green: #10b981;
+      --yellow: #f59e0b;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 20px 15px;
+    }
+
+    .container { max-width: 600px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { color: #c084fc; font-size: 1.8rem; margin: 5px 0; }
+    .subtitle { color: var(--text-muted); font-size: 0.9rem; }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center; }
+
+    /* RULETA PERMANENTE EN PANTALLA */
+    .roulette-box {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 5px solid #c084fc;
+      margin: 15px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #f59e0b;
+      background: radial-gradient(circle, #2e1065, #0b061a);
+      box-shadow: 0 0 25px rgba(192, 132, 252, 0.4);
+      transition: transform 0.3s ease;
+    }
+
+    .winner-announcement {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #10b981;
+      margin-top: 10px;
+      min-height: 30px;
+    }
+
+    /* Temporizador */
+    .timer-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; }
+    .timer-grid { display: flex; justify-content: center; gap: 10px; }
+    .timer-box { background: rgba(15, 8, 29, 0.8); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; min-width: 60px; }
+    .timer-val { font-size: 1.4rem; font-weight: 800; color: #f59e0b; }
+    .timer-label { font-size: 0.65rem; color: var(--text-muted); }
+
+    /* Formulario */
+    .form-group { margin-bottom: 12px; text-align: left; }
+    label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+    input[type="text"], textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 8, 29, 0.8); color: white; box-sizing: border-box; }
+    textarea { height: 80px; resize: none; }
+    .btn-submit { width: 100%; background: linear-gradient(90deg, #7c3aed, #c084fc); color: white; border: none; padding: 12px; font-weight: 700; border-radius: 10px; cursor: pointer; }
+
+    .flash-error { background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; }
+    .flash-success { background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #6ee7b7; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>AGENCIA FyD</h1>
+        <div class="subtitle">{{ config.title }}</div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- SECCIÓN DE LA RULETA PERMANENTE -->
+    <div class="card">
+        <h3 style="margin:0; font-size:1.1rem; color:#c084fc;">🎡 RULETA DEL SORTEO</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin:5px 0 15px 0;">Premio: {{ config.prize_description }}</p>
+        
+        <div class="roulette-box" id="client-roulette">#000000</div>
+        <div class="winner-announcement" id="client-winner"></div>
+    </div>
+
+    <!-- TEMPORIZADOR -->
+    <div class="card">
+        <div class="timer-title">El Sorteo Inicia En:</div>
+        <div class="timer-grid">
+            <div class="timer-box"><div class="timer-val" id="days">00</div><div class="timer-label">DÍAS</div></div>
+            <div class="timer-box"><div class="timer-val" id="hours">00</div><div class="timer-label">HORAS</div></div>
+            <div class="timer-box"><div class="timer-val" id="minutes">00</div><div class="timer-label">MINS</div></div>
+            <div class="timer-box"><div class="timer-val" id="seconds">00</div><div class="timer-label">SEGS</div></div>
+        </div>
+    </div>
+
+    <!-- REGISTRO -->
+    <div class="card">
+        <h3 style="margin-top:0; font-size:1.1rem; color:#c084fc; text-align:left;">Registra tu Ticket</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px; text-align:left;">Monto mínimo: Bs. {{ config.min_amount }}</p>
+        <form action="/upload-ticket" method="POST">
+            <div class="form-group">
+                <label>Nombre y Apellido</label>
+                <input type="text" name="client_name" required placeholder="Ej: Maria Perez">
+            </div>
+            <div class="form-group">
+                <label>Teléfono</label>
+                <input type="text" name="client_phone" required placeholder="Ej: 04121234567">
+            </div>
+            <div class="form-group">
+                <label>Pega aquí tu Ticket</label>
+                <textarea name="raw_ticket" required placeholder="Pega el texto del ticket..."></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Participar en la Dinámica</button>
+        </form>
+    </div>
+
+    <!-- CONSULTA -->
+    <div class="card">
+        <h3 style="margin-top:0; font-size:1rem; color:var(--text-muted); text-align:left;">Consultar mis Boletos</h3>
+        <form action="/" method="GET" style="display:flex; gap:8px;">
+            <input type="text" name="search_name" value="{{ search_query }}" placeholder="Ingresa tu nombre..." style="flex:1;">
+            <button type="submit" class="btn-submit" style="width:auto; padding:0 15px;">Buscar</button>
+        </form>
+
+        {% if user_tickets %}
+        <div style="margin-top:15px; text-align:left;">
+            {% for t in user_tickets %}
+            <div style="background:rgba(15,8,29,0.5); padding:10px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <strong style="color:#c084fc;">{{ t.participation_number }}</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Serial: {{ t.extracted_serial }} - Bs. {{ t.extracted_amount }}</div>
+                </div>
+                <span style="font-size:0.75rem; font-weight:bold; color: {% if t.status=='APROBADO' %}#10b981{% elif t.status=='RECHAZADO' %}#ef4444{% else %}#f59e0b{% endif %};">{{ t.status }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Temporizador
+    const targetDate = new Date("{{ target_draw_time }}").getTime();
+    setInterval(() => {
+        const now = new Date().getTime();
+        const diff = targetDate - now;
+
+        if (diff > 0) {
+            document.getElementById("days").innerText = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, '0');
+            document.getElementById("hours").innerText = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            document.getElementById("minutes").innerText = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            document.getElementById("seconds").innerText = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+        }
+    }, 1000);
+
+    // Sorteo Ruleta en Tiempo Real
+    const socket = io();
+    const rouletteBox = document.getElementById('client-roulette');
+    const winnerAnnouncement = document.getElementById('client-winner');
+    let spinInterval = null;
+
+    socket.on('start_spinning', () => {
+        winnerAnnouncement.innerText = '⚡ ¡SORTEO EN PROCESO! ⚡';
+        winnerAnnouncement.style.color = '#f59e0b';
+        
+        spinInterval = setInterval(() => {
+            let randomNum = Math.floor(Math.random() * 999999);
+            rouletteBox.innerText = '#' + String(randomNum).padStart(6, '0');
+        }, 80);
+    });
+
+    socket.on('show_winner', (data) => {
+        clearInterval(spinInterval);
+        rouletteBox.innerText = data.number;
+        winnerAnnouncement.innerText = '🎉 ¡GANADOR/A: ' + data.name + '! 🎉';
+        winnerAnnouncement.style.color = '#10b981';
+    });
+</script>
+
+</body>
+</html>

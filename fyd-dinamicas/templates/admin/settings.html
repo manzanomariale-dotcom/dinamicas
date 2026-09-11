@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración - Agencia FyD Admin</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+      :root {
+        --bg-main: #0b061a;
+        --bg-card: rgba(26, 15, 48, 0.7);
+        --border-color: rgba(167, 139, 250, 0.15);
+        --purple-primary: #8b5cf6;
+        --purple-glow: rgba(139, 92, 246, 0.3);
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+      }
+
+      body {
+        background-color: var(--bg-main) !important;
+        background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, #0b061a 70%);
+        color: var(--text-main) !important;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        margin: 0;
+        padding: 30px;
+        min-height: 100vh;
+      }
+
+      .container { max-width: 800px; margin: 0 auto; }
+
+      .navbar {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        padding: 16px 28px;
+        border-radius: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .brand { font-size: 1.2rem; font-weight: 700; color: #c084fc; letter-spacing: 1px; }
+
+      .nav-links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-left: 20px;
+        transition: all 0.2s ease;
+      }
+
+      .nav-links a:hover, .nav-links a.active { color: #c084fc; text-shadow: 0 0 10px var(--purple-glow); }
+      .nav-links a.logout { color: #ef4444; }
+
+      .card {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      h2 { color: #c084fc; margin-top: 0; margin-bottom: 20px; font-size: 1.4rem; }
+
+      .form-group { margin-bottom: 20px; }
+      label { display: block; font-size: 0.88rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+
+      input[type="text"], input[type="date"], input[type="datetime-local"] {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: rgba(15, 8, 29, 0.8);
+        color: white;
+        font-family: inherit;
+        font-size: 0.95rem;
+        box-sizing: border-box;
+      }
+
+      input:focus { outline: none; border-color: var(--purple-primary); box-shadow: 0 0 10px var(--purple-glow); }
+
+      .btn-submit {
+        width: 100%;
+        background: linear-gradient(90deg, #7c3aed, #c084fc);
+        color: white;
+        border: none;
+        padding: 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 10px;
+      }
+
+      .btn-submit:hover { opacity: 0.9; box-shadow: 0 4px 20px var(--purple-glow); }
+
+      .current-info {
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 25px;
+      }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="navbar">
+        <div class="brand">AGENCIA FyD ADMIN</div>
+        <div class="nav-links">
+            <a href="{{ url_for('admin.dashboard') }}">Tickets</a>
+            <a href="{{ url_for('admin.roulette') }}">🎯 Ruleta</a>
+            <a href="{{ url_for('admin.history') }}">🏆 Historial</a>
+            <a href="{{ url_for('admin.settings') }}" class="active">⚙️ Configuración</a>
+            <a href="{{ url_for('admin.logout') }}" class="logout">Salir</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>⚙️ Gestión de Dinámica Semanal</h2>
+
+        {% if dynamic %}
+        <div class="current-info">
+            <p style="margin:0 0 5px 0; font-size:0.85rem; color: var(--text-muted);">DINÁMICA ACTUALL</p>
+            <strong style="color: #c084fc; font-size: 1.1rem;">{{ dynamic.name }}</strong>
+            <p style="margin: 5px 0 0 0; font-size: 0.85rem;">Sorteo programado: {{ dynamic.draw_datetime }}</p>
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Nombre de la Nueva Dinámica</label>
+                <input type="text" name="name" placeholder="Ej: DINÁMICA SEMANAL #002" required>
+            </div>
+            <div class="form-group">
+                <label>Fecha de Inicio</label>
+                <input type="date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label>Fecha de Cierre</label>
+                <input type="date" name="end_date" required>
+            </div>
+            <div class="form-group">
+                <label>Fecha y Hora del Sorteo en Vivo</label>
+                <input type="datetime-local" name="draw_datetime" required>
+            </div>
+            <button type="submit" class="btn-submit">Crear y Activar Nueva Dinámica</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruleta en Vivo - Agencia FyD Admin</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+      :root {
+        --bg-main: #0b061a;
+        --bg-card: rgba(26, 15, 48, 0.7);
+        --border-color: rgba(167, 139, 250, 0.15);
+        --purple-primary: #8b5cf6;
+        --purple-glow: rgba(139, 92, 246, 0.3);
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --gold: #f59e0b;
+      }
+
+      body {
+        background-color: var(--bg-main) !important;
+        background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, #0b061a 70%);
+        color: var(--text-main) !important;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        margin: 0;
+        padding: 30px;
+        min-height: 100vh;
+      }
+
+      .container { max-width: 900px; margin: 0 auto; text-align: center; }
+
+      .navbar {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        padding: 16px 28px;
+        border-radius: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        text-align: left;
+      }
+
+      .brand { font-size: 1.2rem; font-weight: 700; color: #c084fc; letter-spacing: 1px; }
+
+      .nav-links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-left: 20px;
+      }
+
+      .nav-links a.active { color: #c084fc; }
+      .nav-links a.logout { color: #ef4444; }
+
+      .wheel-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .wheel-container {
+        position: relative;
+        width: 280px;
+        height: 280px;
+        margin: 20px auto;
+      }
+
+      .wheel {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 8px solid #c084fc;
+        box-shadow: 0 0 30px var(--purple-glow);
+        background: conic-gradient(#7c3aed 0deg 60deg, #4c1d95 60deg 120deg, #a78bfa 120deg 180deg, #6d28d9 180deg 240deg, #c084fc 240deg 300deg, #3b0764 300deg 360deg);
+        transition: transform 4s cubic-bezier(0.15, 0.85, 0.35, 1.2);
+      }
+
+      .pointer {
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-top: 25px solid var(--gold);
+        z-index: 10;
+      }
+
+      .btn-spin {
+        background: linear-gradient(90deg, #10b981, #059669);
+        color: white;
+        border: none;
+        padding: 16px 40px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border-radius: 14px;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+        transition: transform 0.2s;
+        margin-top: 20px;
+      }
+
+      .btn-spin:hover { transform: scale(1.05); }
+
+      .winner-box {
+        display: none;
+        margin-top: 25px;
+        padding: 20px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 2px solid var(--gold);
+        border-radius: 16px;
+      }
+
+      .winner-box h3 { color: var(--gold); margin: 0 0 10px 0; font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="navbar">
+        <div class="brand">AGENCIA FyD ADMIN</div>
+        <div class="nav-links">
+            <a href="{{ url_for('admin.dashboard') }}">Tickets</a>
+            <a href="{{ url_for('admin.roulette') }}" class="active">🎯 Ruleta</a>
+            <a href="{{ url_for('admin.history') }}">🏆 Historial</a>
+            <a href="{{ url_for('admin.settings') }}">⚙️ Configuración</a>
+            <a href="{{ url_for('admin.logout') }}" class="logout">Salir</a>
+        </div>
+    </div>
+
+    <div class="wheel-card">
+        <h2 style="color: #c084fc; margin-top:0;">🎯 Sorteo en Vivo - Gran Ruleta</h2>
+        <p style="color: var(--text-muted);">Boletos validados listos para participar: <strong style="color: white;">{{ valid_count }}</strong></p>
+
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <div class="wheel" id="wheel"></div>
+        </div>
+
+        <button class="btn-spin" id="spinBtn" onclick="startSpin()">GIRAR RULETA</button>
+
+        <div class="winner-box" id="winnerBox">
+            <h3>🎉 ¡TENEMOS UN GANADOR! 🎉</h3>
+            <p style="font-size: 1.3rem; margin: 5px 0;"><strong id="wName"></strong> (<span id="wNum" style="color:#c084fc;"></span>)</p>
+            <p style="margin: 0; color: var(--text-muted);">Serial: <code id="wSerial"></code> | Teléfono: <span id="wPhone"></span></p>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentRotation = 0;
+
+function startSpin() {
+    const btn = document.getElementById('spinBtn');
+    btn.disabled = true;
+
+    fetch('/admin/api/spin-wheel', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        if(data.error) {
+            alert(data.error);
+            btn.disabled = false;
+            return;
+        }
+
+        const extraTurns = (Math.floor(Math.random() * 5) + 5) * 360;
+        currentRotation += extraTurns + Math.floor(Math.random() * 360);
+        document.getElementById('wheel').style.transform = `rotate(${currentRotation}deg)`;
+
+        setTimeout(() => {
+            document.getElementById('wName').innerText = data.client_name;
+            document.getElementById('wNum').innerText = data.participation_number;
+            document.getElementById('wSerial').innerText = data.serial;
+            document.getElementById('wPhone').innerText = data.masked_phone;
+            document.getElementById('winnerBox').style.display = 'block';
+            btn.disabled = false;
+        }, 4000);
+    });
+}
+</script>
+
+</body>
+</html>
