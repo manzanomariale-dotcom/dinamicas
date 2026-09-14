@@ -12,7 +12,7 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 DYNAMIC_CONFIG = {
     'title': 'Gran Dinámica Semanal',
-    'min_amount': 500.0,
+    'min_amount': 200.0,
     'target_draw_time': (datetime.now() + timedelta(days=2)).strftime(
         '%Y-%m-%dT20:00'
     ),
