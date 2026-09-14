@@ -13,7 +13,7 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 DYNAMIC_CONFIG = {
     'title': 'Gran Dinámica Semanal',
     'min_amount': 200.0,
-    'min_message': '¡Participan tickets de 200 Bs en adelante!',
+    'min_message': '¡PARTICIPAN TICKETS DE 200 BS EN ADELANTE!',
     'target_draw_time': (datetime.now() + timedelta(days=2)).strftime(
         '%Y-%m-%dT20:00'
     ),
